@@ -14,9 +14,6 @@ cache = init(du, u, AbsSafeBestTerminationMode(); abstol = 1e-9, reltol = 1e-9)
 If `abstol` and `reltol` are not supplied, then we choose a default based on the element
 types of `du` and `u`.
 
-We can query the `cache` using `DiffEqBase.get_termination_mode`, `DiffEqBase.get_abstol`
-and `DiffEqBase.get_reltol`.
-
 To test for termination simply call the `cache`:
 
 ```julia
@@ -26,46 +23,23 @@ terminated = cache(du, u, uprev)
 ### Absolute Tolerance
 
 ```@docs
-AbsTerminationMode
-AbsNormTerminationMode
-AbsSafeTerminationMode
-AbsSafeBestTerminationMode
+NonlinearSolveBase.AbsTerminationMode
+NonlinearSolveBase.AbsNormTerminationMode
+NonlinearSolveBase.AbsNormSafeTerminationMode
+NonlinearSolveBase.AbsNormSafeBestTerminationMode
 ```
 
 ### Relative Tolerance
 
 ```@docs
-RelTerminationMode
-RelNormTerminationMode
-RelSafeTerminationMode
-RelSafeBestTerminationMode
+NonlinearSolveBase.RelTerminationMode
+NonlinearSolveBase.RelNormTerminationMode
+NonlinearSolveBase.RelNormSafeTerminationMode
+NonlinearSolveBase.RelNormSafeBestTerminationMode
 ```
 
-### Both Absolute and Relative Tolerance
+### Both Tolerances
 
 ```@docs
-NormTerminationMode
-SteadyStateDiffEqTerminationMode
-```
-
-The following was named to match an older version of SimpleNonlinearSolve. It is currently
-not used as a default anywhere.
-
-```@docs
-SimpleNonlinearSolveTerminationMode
-```
-
-### Return Codes (Deprecated)
-
-These are deprecated and will be removed in a future release. Use the
-`use_deprecated_retcodes = Val(false)` option to `SciMLBase.init` to use the new return
-`ReturnCode` versions.
-
-```@docs
-DiffEqBase.NonlinearSafeTerminationReturnCode
-DiffEqBase.NonlinearSafeTerminationReturnCode.Success
-DiffEqBase.NonlinearSafeTerminationReturnCode.Default
-DiffEqBase.NonlinearSafeTerminationReturnCode.Failure
-DiffEqBase.NonlinearSafeTerminationReturnCode.PatienceTermination
-DiffEqBase.NonlinearSafeTerminationReturnCode.ProtectiveTermination
+NonlinearSolveBase.NormTerminationMode
 ```

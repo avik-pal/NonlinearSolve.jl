@@ -25,13 +25,25 @@ jobs:
           - {user: SciML, repo: OrdinaryDiffEq.jl, group: Interface}
           - {user: SciML, repo: OrdinaryDiffEq.jl, group: Regression}
           - {user: SciML, repo: BoundaryValueDiffEq.jl, group: All}
+          - {user: SciML, repo: DiffEqCallbacks.jl, group: All}
     steps:
       - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.julia-version }}
           arch: x64
-      - uses: julia-actions/julia-buildpkg@latest
+      - name: "Install Dependencies"
+        run: |
+          import Pkg
+          Pkg.Registry.update()
+          # Install packages present in subdirectories
+          dev_pks = Pkg.PackageSpec[]
+          for path in ("lib/SciMLJacobianOperators", "lib/BracketingNonlinearSolve", "lib/NonlinearSolveBase", "lib/SimpleNonlinearSolve", "lib/NonlinearSolveFirstOrder", "lib/NonlinearSolveSpectralMethods", "lib/NonlinearSolveQuasiNewton")
+              push!(dev_pks, Pkg.PackageSpec(; path))
+          end
+          Pkg.develop(dev_pks)
+          Pkg.instantiate()
+        shell: julia --color=yes --code-coverage=user --depwarn=yes --project=. {0}
       - name: Clone Downstream
         uses: actions/checkout@v4
         with:
@@ -45,7 +57,7 @@ jobs:
             # force it to use this PR's version of the package
             Pkg.develop(PackageSpec(path="."))  # resolver may fail with main deps
             Pkg.update()
-            Pkg.test(coverage=true)  # resolver may fail with test time deps
+            Pkg.test(coverage="user")  # resolver may fail with test time deps
           catch err
             err isa Pkg.Resolve.ResolverError || rethrow()
             # If we can't resolve that means this is incompatible by SemVer and this is fine
@@ -57,8 +69,8 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src,ext
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v5
         with:
           file: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
+          fail_ci_if_error: false

@@ -1,62 +1,34 @@
 # Automatic Differentiation Backends
 
+!!! note
+    
+    We support all backends supported by DifferentiationInterface.jl. Please refer to
+    the [backends page](https://juliadiff.org/DifferentiationInterface.jl/DifferentiationInterface/stable/explanation/backends/)
+    for more information.
+
 ## Summary of Finite Differencing Backends
 
-  - [`AutoFiniteDiff`](@ref): Finite differencing, not optimal but always applicable.
-  - [`AutoSparseFiniteDiff`](@ref): Sparse version of [`AutoFiniteDiff`](@ref).
+  - [`AutoFiniteDiff`](@extref ADTypes.AutoFiniteDiff): Finite differencing using
+    `FiniteDiff.jl`, not optimal but always applicable.
+  - [`AutoFiniteDifferences`](@extref ADTypes.AutoFiniteDifferences): Finite differencing
+    using `FiniteDifferences.jl`, not optimal but always applicable.
 
 ## Summary of Forward Mode AD Backends
 
-  - [`AutoForwardDiff`](@ref): The best choice for dense problems.
-  - [`AutoSparseForwardDiff`](@ref): Sparse version of [`AutoForwardDiff`](@ref).
-  - [`AutoPolyesterForwardDiff`](@ref): Might be faster than [`AutoForwardDiff`](@ref) for
-    large problems. Requires `PolyesterForwardDiff.jl` to be installed and loaded.
+  - [`AutoForwardDiff`](@extref ADTypes.AutoForwardDiff): The best choice for dense
+    problems.
+  - [`AutoPolyesterForwardDiff`](@extref ADTypes.AutoPolyesterForwardDiff): Might be faster
+    than [`AutoForwardDiff`](@extref ADTypes.AutoForwardDiff) for large problems. Requires
+    `PolyesterForwardDiff.jl` to be installed and loaded.
 
 ## Summary of Reverse Mode AD Backends
 
-  - [`AutoZygote`](@ref): The fastest choice for non-mutating array-based (BLAS) functions.
-  - [`AutoSparseZygote`](@ref): Sparse version of [`AutoZygote`](@ref).
-  - [`AutoEnzyme`](@ref): Uses `Enzyme.jl` Reverse Mode and should be considered
-    experimental.
+  - [`AutoZygote`](@extref ADTypes.AutoZygote): The fastest choice for non-mutating
+    array-based (BLAS) functions.
+  - [`AutoEnzyme`](@extref ADTypes.AutoEnzyme): Uses `Enzyme.jl` Reverse Mode and works for
+    both in-place and out-of-place functions.
 
-!!! note
+!!! tip
     
-    If `PolyesterForwardDiff.jl` is installed and loaded, then `SimpleNonlinearSolve.jl`
-    will automatically use `AutoPolyesterForwardDiff` as the default AD backend.
-
-!!! note
-    
-    The `Sparse` versions of the methods refers to automated sparsity detection. These
-    methods automatically discover the sparse Jacobian form from the function `f`. Note that
-    all methods specialize the differentiation on a sparse Jacobian if the sparse Jacobian
-    is given as `prob.f.jac_prototype` in the `NonlinearFunction` definition, and the
-    `AutoSparse` here simply refers to whether this `jac_prototype` should be generated
-    automatically. For more details, see
-    [SparseDiffTools.jl](https://github.com/JuliaDiff/SparseDiffTools.jl) and
-    [Sparsity Detection Manual Entry](@ref sparsity-detection).
-
-## API Reference
-
-### Finite Differencing Backends
-
-```@docs
-AutoFiniteDiff
-AutoSparseFiniteDiff
-```
-
-### Forward Mode AD Backends
-
-```@docs
-AutoForwardDiff
-AutoSparseForwardDiff
-AutoPolyesterForwardDiff
-```
-
-### Reverse Mode AD Backends
-
-```@docs
-AutoZygote
-AutoSparseZygote
-AutoEnzyme
-NonlinearSolve.AutoSparseEnzyme
-```
+    For sparsity detection and sparse AD take a look at
+    [sparsity detection](@ref sparsity-detection).

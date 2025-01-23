@@ -16,8 +16,8 @@ myfun(x, lv) = x * sin(x) - lv
 function f(out, levels, u0)
     for i in 1:N
         out[i] = solve(
-            IntervalNonlinearProblem{false}(IntervalNonlinearFunction{false}(myfun),
-                u0, levels[i]),
+            IntervalNonlinearProblem{false}(
+                IntervalNonlinearFunction{false}(myfun), u0, levels[i]),
             Falsi()).u
     end
 end
@@ -25,8 +25,7 @@ end
 function f2(out, levels, u0)
     for i in 1:N
         out[i] = solve(
-            NonlinearProblem{false}(NonlinearFunction{false}(myfun),
-                u0, levels[i]),
+            NonlinearProblem{false}(NonlinearFunction{false}(myfun), u0, levels[i]),
             SimpleNewtonRaphson()).u
     end
 end
@@ -75,8 +74,8 @@ be a Dual number. This causes the error. To fix it:
  1. Specify the `autodiff` to be `AutoFiniteDiff`
 
 ```@example dual_error_faq
-sol = solve(prob_oop, LevenbergMarquardt(; autodiff = AutoFiniteDiff()); maxiters = 10000,
-    abstol = 1e-8)
+sol = solve(prob_oop, LevenbergMarquardt(; autodiff = AutoFiniteDiff());
+    maxiters = 10000, abstol = 1e-8)
 ```
 
 This worked but, Finite Differencing is not the recommended approach in any scenario.
@@ -103,7 +102,8 @@ It is hard to say why your code is not fast. Take a look at the
 there is type instability.
 
 If you are using the defaults for the autodiff and your problem is not a scalar or using
-static arrays, ForwardDiff will create type unstable code. See this simple example:
+static arrays, ForwardDiff will create type unstable code and lead to dynamic dispatch
+internally. See this simple example:
 
 ```@example type_unstable
 using NonlinearSolve, InteractiveUtils
@@ -137,22 +137,25 @@ prob = NonlinearProblem(f, [1.0, 2.0], 2.0)
 nothing # hide
 ```
 
-Oh no! This is type unstable. This is because ForwardDiff.jl will chunk the jacobian
-computation and the type of this chunksize can't be statically inferred. To fix this, we
-directly specify the chunksize:
+Ah it is still type stable. But internally since the chunksize is not statically inferred,
+it will be dynamic and lead to dynamic dispatch. To fix this, we directly specify the
+chunksize:
 
 ```@example type_unstable
-@code_warntype solve(prob,
+@code_warntype solve(
+    prob,
     NewtonRaphson(;
-        autodiff = AutoForwardDiff(; chunksize = NonlinearSolve.pickchunksize(prob.u0))))
+        autodiff = AutoForwardDiff(; chunksize = NonlinearSolve.pickchunksize(prob.u0))
+    )
+)
 nothing # hide
 ```
 
 And boom! Type stable again. We always recommend picking the chunksize via
-[`NonlinearSolve.pickchunksize`](@ref), however, if you manually specify the chunksize, it
+[`NonlinearSolveBase.pickchunksize`](@ref), however, if you manually specify the chunksize, it
 must be `≤ length of input`. However, a very large chunksize can lead to excessive
 compilation times and slowdown.
 
 ```@docs
-NonlinearSolve.pickchunksize
+NonlinearSolveBase.pickchunksize
 ```

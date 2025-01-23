@@ -168,3 +168,21 @@ SIAMFANLEquations.jl is a wrapper for the methods in the SIAMFANLEquations.jl li
 Other solvers listed in [Fixed Point Solvers](@ref fixed_point_methods_full_list),
 [FastLevenbergMarquardt.jl](@ref fastlm_wrapper_summary) and
 [LeastSquaresOptim.jl](@ref lso_wrapper_summary) can also solve nonlinear systems.
+
+### NLSolvers.jl
+
+This is a wrapper package for importing solvers from NLSolvers.jl into the SciML interface.
+
+  - [`NLSolversJL()`](@ref): A wrapper for
+    [NLSolvers.jl](https://github.com/JuliaNLSolvers/NLSolvers.jl)
+
+For a list of possible solvers see the [NLSolvers.jl documentation](https://julianlsolvers.github.io/NLSolvers.jl/)
+
+### PETSc.jl
+
+This is a wrapper package for importing solvers from PETSc.jl into the SciML interface.
+
+  - [`PETScSNES()`](@ref): A wrapper for
+    [PETSc.jl](https://github.com/JuliaParallel/PETSc.jl)
+
+For a list of possible solvers see the [PETSc.jl documentation](https://petsc.org/release/manual/snes/)

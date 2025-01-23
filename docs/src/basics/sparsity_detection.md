@@ -6,14 +6,40 @@ to use this in an actual problem, see
 
 Notation wise we are trying to solve for `x` such that `nlfunc(x) = 0`.
 
+## Big Table for Determining Sparsity Detection and Coloring Algorithms
+
+| `f.sparsity`               | `f.jac_prototype` | `f.colorvec` | Sparsity Detection                               | Coloring Algorithm                        |
+|:-------------------------- |:----------------- |:------------ |:------------------------------------------------ |:----------------------------------------- |
+| ❌                          | ❌                 | `Any`        | `NoSparsityDetector()`                           | `NoColoringAlgorithm()`                   |
+| ❌                          | Not Structured    | `Any`        | `NoSparsityDetector()`                           | `NoColoringAlgorithm()`                   |
+| ❌                          | Structured        | ✅            | `KnownJacobianSparsityDetector(f.jac_prototype)` | `GreedyColoringAlgorithm(LargestFirst())` |
+| ❌                          | Structured        | ❌            | `KnownJacobianSparsityDetector(f.jac_prototype)` | `GreedyColoringAlgorithm(LargestFirst())` |
+| -                          | -                 | -            | -                                                | -                                         |
+| `AbstractMatrix`           | ❌                 | ✅            | `KnownJacobianSparsityDetector(f.sparsity)`      | `ConstantColoringAlgorithm(f.colorvec)`   |
+| `AbstractMatrix`           | ❌                 | ❌            | `KnownJacobianSparsityDetector(f.sparsity)`      | `GreedyColoringAlgorithm(LargestFirst())` |
+| `AbstractMatrix`           | Not Structured    | ✅            | `KnownJacobianSparsityDetector(f.sparsity)`      | `ConstantColoringAlgorithm(f.colorvec)`   |
+| `AbstractMatrix`           | Not Structured    | ❌            | `KnownJacobianSparsityDetector(f.sparsity)`      | `GreedyColoringAlgorithm(LargestFirst())` |
+| `AbstractMatrix`           | Structured        | `Any`        | 🔴                                                | 🔴                                         |
+| -                          | -                 | -            | -                                                | -                                         |
+| `AbstractSparsityDetector` | ❌                 | `Any`        | `f.sparsity`                                     | `GreedyColoringAlgorithm(LargestFirst())` |
+| `AbstractSparsityDetector` | Not Structured    | ✅            | `f.sparsity`                                     | `ConstantColoringAlgorithm(f.colorvec)`   |
+| `AbstractSparsityDetector` | Not Structured    | ❌            | `f.sparsity`                                     | `GreedyColoringAlgorithm(LargestFirst())` |
+| `AbstractSparsityDetector` | Structured        | ✅            | `KnownJacobianSparsityDetector(f.jac_prototype)` | `ConstantColoringAlgorithm(f.colorvec)`   |
+| `AbstractSparsityDetector` | Structured        | ❌            | `KnownJacobianSparsityDetector(f.jac_prototype)` | `GreedyColoringAlgorithm(LargestFirst())` |
+
+ 1. `Structured` means either a `AbstractSparseMatrix` or `ArrayInterface.isstructured(x)` is true.
+ 2. ❌ means not provided (default)
+ 3. ✅ means provided
+ 4. 🔴 means an error will be thrown
+ 5. Providing a colorvec without specifying either sparsity or jac_prototype with a sparse or structured matrix will cause us to ignore the colorvec.
+ 6. The function calls demonstrated above are simply pseudo-code to show the general idea.
+
 ## Case I: Sparse Jacobian Prototype is Provided
 
 Let's say you have a Sparse Jacobian Prototype `jac_prototype`, in this case you can
 create your problem as follows:
 
 ```julia
-prob = NonlinearProblem(NonlinearFunction(nlfunc; sparsity = jac_prototype), x0)
-# OR
 prob = NonlinearProblem(NonlinearFunction(nlfunc; jac_prototype = jac_prototype), x0)
 ```
 
@@ -23,12 +49,7 @@ Now you can help the solver further by providing the color vector. This can be d
 
 ```julia
 prob = NonlinearProblem(
-    NonlinearFunction(nlfunc; sparsity = jac_prototype,
-        colorvec = colorvec), x0)
-# OR
-prob = NonlinearProblem(
-    NonlinearFunction(nlfunc; jac_prototype = jac_prototype,
-        colorvec = colorvec), x0)
+    NonlinearFunction(nlfunc; jac_prototype = jac_prototype, colorvec = colorvec), x0)
 ```
 
 If the `colorvec` is not provided, then it is computed on demand.
@@ -36,8 +57,8 @@ If the `colorvec` is not provided, then it is computed on demand.
 !!! note
     
     One thing to be careful about in this case is that `colorvec` is dependent on the
-    autodiff backend used. Forward Mode and Finite Differencing will assume that the
-    colorvec is the column colorvec, while Reverse Mode will assume that the colorvec is the
+    autodiff backend used. `ADTypes.mode(ad) isa ADTypes.ForwardMode` will assume that the
+    colorvec is the column colorvec, otherwise we will assume that the colorvec is the
     row colorvec.
 
 ## Case II: Sparsity Detection algorithm is provided
@@ -46,37 +67,12 @@ If you don't have a Sparse Jacobian Prototype, but you know the which sparsity d
 algorithm you want to use, then you can create your problem as follows:
 
 ```julia
-prob = NonlinearProblem(NonlinearFunction(nlfunc; sparsity = SymbolicsSparsityDetection()),
-    x0)  # Remember to have Symbolics.jl loaded
+prob = NonlinearProblem(
+    NonlinearFunction(nlfunc; sparsity = SymbolicsSparsityDetector()), x0)  # Remember to have Symbolics.jl loaded
 # OR
 prob = NonlinearProblem(
-    NonlinearFunction(nlfunc; sparsity = ApproximateJacobianSparsity()),
-    x0)
+    NonlinearFunction(nlfunc; sparsity = TracerSparsityDetector()), x0) # From SparseConnectivityTracer.jl
 ```
 
-These Detection Algorithms are from [SparseDiffTools.jl](https://github.com/JuliaDiff/SparseDiffTools.jl),
-refer to the documentation there for more details.
-
-## Case III: Sparse AD Type is being Used
-
-If you constructed a Nonlinear Solver with a sparse AD type, for example
-
-```julia
-NewtonRaphson(; autodiff = AutoSparseForwardDiff())
-# OR
-TrustRegion(; autodiff = AutoSparseZygote())
-```
-
-then NonlinearSolve will automatically perform matrix coloring and use sparse
-differentiation if none of `sparsity` or `jac_prototype` is provided. If `Symbolics.jl` is
-loaded, we default to using `SymbolicsSparsityDetection()`, else we default to using
-`ApproximateJacobianSparsity()`.
-
-`Case I/II` take precedence for sparsity detection and we perform sparse AD based on those
-options if those are provided.
-
-!!! warning
-    
-    If you provide a non-sparse AD, and provide a `sparsity` or `jac_prototype` then
-    we will use dense AD. This is because, if you provide a specific AD type, we assume
-    that you know what you are doing and want to override the default choice of `nothing`.
+Refer to the documentation of DifferentiationInterface.jl and SparseConnectivityTracer.jl
+for more information on sparsity detection algorithms.
